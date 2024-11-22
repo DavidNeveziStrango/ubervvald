@@ -6,7 +6,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: ubervvald
+name: Publish new version to PyPI
 
 on:
   push:
