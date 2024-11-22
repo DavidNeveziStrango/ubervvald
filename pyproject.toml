@@ -41,12 +41,6 @@ license = {file = "LICENSE"}
 
 classifiers = [
     "Development Status :: 3 - Alpha",
-    "Differentiable Neural Architecture Search :: PLiNIO",
-    "Quantization-aware training :: PyTorch",
-    "Static Quantization :: ONNX",
-    "Programming Language :: Python",
-    # "License :: OSI Approved :: MIT License",
-    # "Operating System :: OS Independent",
 ]
 
 [project.urls]
