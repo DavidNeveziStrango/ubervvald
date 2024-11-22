@@ -22,11 +22,8 @@ dependencies = [
     "torcheval>=0.0.7",
     "numpy>=1.24.3",
     "pandas>=2.2.2",
-    "plinio@git+https://github.com/eml-eda/plinio.git@main#egg=plinio",
+    "plinio @ git+https://github.com/eml-eda/plinio.git@main",
                                 # put commit hash here^^^^
-    # "gidgethub[httpx]>4.0.0",
-    # "django>2.1; os_name != 'nt'",
-    # "django>2.0; os_name == 'nt'",
 ]
 requires-python = ">=3.8"
 authors = [
