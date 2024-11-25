@@ -14,6 +14,11 @@ ONNX models deployed on: Nvidia DRIVEOS 5.2.6 (~Ubuntu 18.04 on aarch64), ONNX O
 
 Nevertheless, the package is meant to be OS independent, so if enough users signal proper execution, you may put a pull request.
 
+## Installation
+Run the following command on any CLI:
+
+```pip install ubervvald@git+https://github.com/DavidNeveziStrango/ubervvald.git@main```
+
 ## Usage
 Refer to the examples notebooks (more to be added later).
 Ultimately, the package is meant to be flexible by allowing to customize your own pipeline as you see fit.
@@ -36,6 +41,9 @@ Additionally, the following sources were used to make the pip package complete:
 1. Q: CUDA out of memory.
 
     A: Try restarting your system. CUDA does not free memory in certain situations, especially when intrerrupting execution. You may also try utilizing `torch.cuda.empty_cache()` as much as possible.
+   
+## Citation
+If you plan to do academic research using the library please cite the repository as shown by Github.
 
 ## License
 Ubervvald is mostly licensed under [Apache License 2.0](LICENSE) but there are some portions of code which were required to be sublicensed with the same one [see example](ubervvald/_utils.py#L145).
