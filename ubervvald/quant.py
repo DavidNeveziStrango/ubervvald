@@ -7,7 +7,7 @@ import torch
 import onnx
 import onnxruntime as ort
 from onnxruntime import quantization
-from ._utils import BaseConfig, F_score, config_wrapper
+from ._utils import BaseConfig, F_score, config_wrapper, hamming_score
 
 from collections.abc import Mapping
 from torch.utils.data import Dataset,  DataLoader
@@ -309,7 +309,9 @@ def qEvaluate(
     Return: the reference and the sample model's F-score of type `torch.Tensor`.
     """
     ref_history = list()
+    ref_hamming = list()
     sample_history = list() 
+    sample_hamming = list() 
     qConfig = _QConfigToken.getConfig()
     device = qConfig.get_device()
     if isTorchSample:
@@ -321,6 +323,7 @@ def qEvaluate(
         ref_outs = ref_sess.run(None, inputs)[0] #extract from ndarray
 
         ref_history.append(F_score(ref_outs, label_batch, qConfig))
+        ref_hamming.append(hamming_score(ref_outs, label_batch, qConfig))
         if isTorchSample:
             img_batch, label_batch = img_batch.to(device), label_batch.to(device) 
 
@@ -331,14 +334,18 @@ def qEvaluate(
             sample_outs = sample_sess.run(None, inputs)[0] #extract from ndarray
 
         sample_history.append(F_score(sample_outs, label_batch, qConfig))
+        sample_hamming.append(hamming_score(sample_outs, label_batch, qConfig))
 
 
 
     fscore_ref = torch.stack(ref_history).mean()
     fscore_sample = torch.stack(sample_history).mean()
-    print("Fscore ref: ", fscore_ref)
-    print("Fscore sample: ", fscore_sample)
-    print("\n")
+    hamming_ref = torch.stack(ref_hamming).mean()
+    hamming_sample = torch.stack(sample_hamming).mean()
+    print("F-score ref: ", fscore_ref)
+    print("Hamming-score ref: ", hamming_ref, end="\n\n")
+    print("F-score sample: ", fscore_sample)
+    print("Hamming-score sample: ", hamming_sample, end="\n\n")
 
     return fscore_ref, fscore_sample
 

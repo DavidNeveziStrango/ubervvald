@@ -98,6 +98,30 @@ def F_score(output: Union[Type[np.ndarray], Type[torch.Tensor]], label: Union[Ty
     F2 = (1 + beta**2) * precision * recall / (beta**2 * precision + recall + adjust)
     return F2.mean(0)
 
+
+def hamming_score(output: Union[Type[np.ndarray], Type[torch.Tensor]], label: Union[Type[np.ndarray], Type[torch.Tensor]], config_token: Type["BaseConfig"], threshold: float = 0.5 ) -> float:
+    """
+    Function to calculate the Hamming-score of the model's performance. Will convert output and label tensors into `torch.Tensor` if needed.
+    
+    Parameters:
+        output: Tensor of type `numpy.ndarray` or `torch.Tensor` containing the output of the model.
+        label: Tensor of type `numpy.ndarray` or `torch.Tensor` containing the true labels of each batch.
+        config_token: Object of base type `BaseConfig` having the last activation function set.
+        threshold: The minimum value to be taken into consideration when calculating probabilities within tensors.
+        
+    Return: the Hamming-score value. 
+    """
+    output = _to_cpu_tensor(output)
+    output = config_token.get_fin_act_func()(output)
+    label = _to_cpu_tensor(label)
+
+    output = output > threshold
+    label = label > threshold
+
+    adjust = 1e-12 # to avoid nan or 0/0 or x/0 situations
+    out = (((output ^ label) ^ 1).sum()  / (torch.numel(output) + adjust)).mean()
+    return out
+
 class BaseConfig(metaclass=ABCMeta):
 
     def __init__(self):

@@ -1,0 +1,5 @@
+__pycache__/
+dist/
+ubervvald.egg-info/
+*.zip
+pdf/
