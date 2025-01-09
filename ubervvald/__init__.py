@@ -25,7 +25,7 @@
 
 from . import DNAS
 from . import quant
-from ._utils import set_seed, F_score, Checkpoint, EarlyStopping
+from ._utils import set_seed, F_score, hamming_score, Checkpoint, EarlyStopping
 
 __version__ = "1.3.0"
-__all__ = ["DNAS", "quant", "set_seed", "F_score", "Checkpoint", "EarlyStopping"]#wildcard export
+__all__ = ["DNAS", "quant", "set_seed", "F_score", "hamming_score", "Checkpoint", "EarlyStopping"]#wildcard export
