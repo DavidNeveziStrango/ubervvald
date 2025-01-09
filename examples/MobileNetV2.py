@@ -187,13 +187,13 @@ class MobileNetV2(nn.Module):
     # Fuse Conv+BN+Relu and Conv+BN+Relu+MaxPool modules prior to quantization
     # This operation does not change the numerics
 
-    def fuse_model(self, is_qat=False):
-        fuse_modules = torch.ao.quantization.fuse_modules_qat if is_qat else torch.ao.quantization.fuse_modules
+    # def fuse_model(self, is_qat=False):
+    #     fuse_modules = torch.ao.quantization.fuse_modules_qat if is_qat else torch.ao.quantization.fuse_modules
         
-        layer_list = ['conv', 'bn', 'activation']
-        # recursively find fuse-able ops
-        fuse_modules([op for m in self.model.modules() for _, op in m.named_children()][0], layer_list, inplace=True)
-        #     operator^^    ^^outer sequential          name|module      ^^inner sequential           
+    #     layer_list = ['conv', 'bn', 'activation']
+    #     # recursively find fuse-able ops
+    #     fuse_modules([op for m in self.model.modules() for _, op in m.named_children()][0], layer_list, inplace=True)
+    #     #     operator^^    ^^outer sequential          name|module      ^^inner sequential           
     def set_qconfig(self, qconfig):
         self.model.qconfig = qconfig
         
