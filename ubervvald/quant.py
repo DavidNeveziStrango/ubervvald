@@ -1,5 +1,6 @@
 #REF: https://medium.com/@hdpoorna/pytorch-to-quantized-onnx-model-18cf2384ec27
 import os
+import time
 import numpy as np
 from tqdm import tqdm
 
@@ -308,6 +309,8 @@ def qEvaluate(
 
     Return: the reference and the sample model's F-score of type `torch.Tensor`.
     """
+    exec_ref = list()
+    exec_sam = list()
     ref_history = list()
     ref_hamming = list()
     sample_history = list() 
@@ -320,7 +323,10 @@ def qEvaluate(
     for img_batch, label_batch in tqdm(dl, ascii=True, unit="batches"):
 
         inputs = {ref_sess.get_inputs()[0].name: _QuntizationDataReader._to_numpy(img_batch)}
+        start_ref = time.process_time_ns()
         ref_outs = ref_sess.run(None, inputs)[0] #extract from ndarray
+        end_end = time.process_time_ns()
+        exec_ref.append(round((end_end-start_ref)/1000000))
 
         ref_history.append(F_score(ref_outs, label_batch, qConfig))
         ref_hamming.append(hamming_score(ref_outs, label_batch, qConfig))
@@ -331,7 +337,10 @@ def qEvaluate(
                 sample_outs = sample_sess(img_batch)
 
         else:
+            start_sam = time.process_time_ns()
             sample_outs = sample_sess.run(None, inputs)[0] #extract from ndarray
+            end_end = time.process_time_ns()
+            exec_sam.append(round((end_end-start_sam)/1000000))
 
         sample_history.append(F_score(sample_outs, label_batch, qConfig))
         sample_hamming.append(hamming_score(sample_outs, label_batch, qConfig))
@@ -342,10 +351,12 @@ def qEvaluate(
     fscore_sample = torch.stack(sample_history).mean()
     hamming_ref = torch.stack(ref_hamming).mean()
     hamming_sample = torch.stack(sample_hamming).mean()
-    print("F-score ref: ", fscore_ref)
-    print("Hamming-score ref: ", hamming_ref, end="\n\n")
-    print("F-score sample: ", fscore_sample)
-    print("Hamming-score sample: ", hamming_sample, end="\n\n")
+    print("Avg elapsed time REF per batch ", np.mean(exec_ref))
+    print("F1-score REF: ", fscore_ref)
+    print("Hamming-score REF: ", hamming_ref, end="\n\n")
+    print("Avg elapsed time SAMPLE per batch ", np.mean(exec_sam))
+    print("F1-score SAMPLE: ", fscore_sample)
+    print("Hamming-score SAMPLE: ", hamming_sample, end="\n\n")
 
     return fscore_ref, fscore_sample
 
