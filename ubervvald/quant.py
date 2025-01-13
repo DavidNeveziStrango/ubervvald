@@ -1,10 +1,12 @@
 #REF: https://medium.com/@hdpoorna/pytorch-to-quantized-onnx-model-18cf2384ec27
 import os
+import time
 import numpy as np
 from tqdm import tqdm
 
 import torch
 import onnx
+from onnx import numpy_helper
 import onnxruntime as ort
 from onnxruntime import quantization
 from ._utils import BaseConfig, F_score, config_wrapper, hamming_score
@@ -207,6 +209,22 @@ def prepare_quantize(
         
     return qConfig.isMinimalConfig()
 
+def count_parameters(onnx_model_path: str) -> int:
+    """
+    Function to determine the number of parameters within a given ONNX model.
+    
+    Parameters:
+        onnx_model_path: The model to be evaluated. Can be a`str` denoting the path to an ONNX model.
+    Return: the number of parameters of the model
+    """
+    
+    model = onnx.load(onnx_model_path)
+    total_parameters = 0
+    for initializer in model.graph.initializer:
+        total_parameters += numpy_helper.to_array(initializer).size
+
+    return total_parameters
+
 def change_input_batch_dim(model: Type[onnx.ModelProto], param_batch_size: Union[str, int] = 1) -> None:
     """
     Change batch size of given model in ONNX format. Works with symbolic batch size as well.
@@ -262,13 +280,12 @@ def export_to_onnx(model_pt: Type[torch.nn.Module], model_shape: Type[torch.Size
     # model_onnx = onnx.version_converter.convert_version(model_onnx, opset)
     onnx.save(model_onnx, qConfig.get_onnx_path())
 
-def create_quant_model(calib_ds: Type[Dataset], input_name: str) -> None:
+def create_quant_model(calib_ds: Type[Dataset]) -> None:
     """
     Function that quantizes statically the specified model. It does static quantization only.
 
     Parameters:
         calib_ds: The dataset to be used for calibration during quantization.
-        input_name: The name of the first layer's input.
 
     """
     qConfig = _QConfigToken.getConfig()
@@ -276,7 +293,12 @@ def create_quant_model(calib_ds: Type[Dataset], input_name: str) -> None:
     quantization.shape_inference.quant_pre_process(qConfig.get_onnx_path(), qConfig.get_prep_path(), skip_symbolic_shape=False if type(batch_size) is str else True)
 
 
-    qdr = _QuntizationDataReader(calib_ds, batch_size=batch_size, input_name=input_name)
+    #start ONNXRuntime session for non-q ONNX model
+    ort_sess = ort.InferenceSession(qConfig.get_onnx_path(), providers=['CUDAExecutionProvider'] if qConfig.get_gpu() and torch.cuda.is_available() else ['CPUExecutionProvider'])
+
+    #start ONNXRuntime session for qONNX model
+    ort_input_name =  ort_sess.get_inputs()[0].name
+    qdr = _QuntizationDataReader(calib_ds, batch_size=batch_size, input_name=ort_input_name)
 
     q_static_opts = {"ActivationSymmetric":False,
                     "WeightSymmetric":True}
@@ -292,62 +314,64 @@ def create_quant_model(calib_ds: Type[Dataset], input_name: str) -> None:
                                                     extra_options=q_static_opts)
 
 def qEvaluate(
-        ref_sess: Type[ort.InferenceSession], 
-        sample_sess: Union[Type[ort.InferenceSession], Type[torch.nn.Module]], 
+        sample_model: Union[str, Type[torch.nn.Module]], 
         dl: Type[DataLoader], 
         isTorchSample: bool = False
         ) -> Tuple[Type[torch.Tensor], Type[torch.Tensor]]:
     """
-    Function that compares the F-scores of two models in executing in ONNXRuntime environment.
+    Function that runs measurements such as F1-score, Hamming score and execution time of a given model.
 
     Parameters:
-        ref_sess: The inference session of the first model. Can only be ONNXRuntime session.
-        smaple_sess: The inference session of the second model. Can be either a PyTorch or an ONNXRuntime instance.
+        sample_model: The model to be evaluated. Can be either a PyTorch or an `str` denoting the path to an ONNX model.
         dl: The DataLoader of the dataset to be evaluated on.
-        isTorchSample: If `sample_sess` is a PyTorch instance, `isTorchSample` should be `True`. Default value is `False`.
+        isTorchSample: If `sample_model` is a PyTorch instance, `isTorchSample` should be `True`. Default value is `False`.
 
-    Return: the reference and the sample model's F-score of type `torch.Tensor`.
+    Return: the sample model's F1-score and Hamming score of type `torch.Tensor` and execution time of type `numpy.ndarray`.
     """
-    ref_history = list()
-    ref_hamming = list()
+    sample_exec = list()
     sample_history = list() 
     sample_hamming = list() 
     qConfig = _QConfigToken.getConfig()
     device = qConfig.get_device()
     if isTorchSample:
-        sample_sess.to()
-
-    for img_batch, label_batch in tqdm(dl, ascii=True, unit="batches"):
-
-        inputs = {ref_sess.get_inputs()[0].name: _QuntizationDataReader._to_numpy(img_batch)}
-        ref_outs = ref_sess.run(None, inputs)[0] #extract from ndarray
-
-        ref_history.append(F_score(ref_outs, label_batch, qConfig))
-        ref_hamming.append(hamming_score(ref_outs, label_batch, qConfig))
-        if isTorchSample:
+        sample_model.to(device)  
+         
+        for img_batch, label_batch in tqdm(dl, ascii=True, unit="batches"):
             img_batch, label_batch = img_batch.to(device), label_batch.to(device) 
 
             with torch.no_grad():
-                sample_outs = sample_sess(img_batch)
+                start_sam = time.process_time_ns()
+                sample_outs = sample_model(img_batch)
+                end_end = time.process_time_ns()
+                
+                sample_exec.append(round((end_end-start_sam)/1000000))
+                sample_history.append(F_score(sample_outs, label_batch, qConfig))
+                sample_hamming.append(hamming_score(sample_outs, label_batch, qConfig))
+    else:
+        #initialize ONNXRuntime configuration
+        ort_provider =  ['CUDAExecutionProvider'] if qConfig.get_gpu() and torch.cuda.is_available() else ['CPUExecutionProvider']
+        sample_sess = ort.InferenceSession(sample_model, providers=ort_provider)
 
-        else:
+        for img_batch, label_batch in tqdm(dl, ascii=True, unit="batches"):
+
+            inputs = {sample_sess.get_inputs()[0].name: _QuntizationDataReader._to_numpy(img_batch)}
+            start_sam = time.process_time_ns()
             sample_outs = sample_sess.run(None, inputs)[0] #extract from ndarray
+            end_end = time.process_time_ns()
 
-        sample_history.append(F_score(sample_outs, label_batch, qConfig))
-        sample_hamming.append(hamming_score(sample_outs, label_batch, qConfig))
+            sample_exec.append(round((end_end-start_sam)/1000000))
+            sample_history.append(F_score(sample_outs, label_batch, qConfig))
+            sample_hamming.append(hamming_score(sample_outs, label_batch, qConfig))
 
 
 
-    fscore_ref = torch.stack(ref_history).mean()
     fscore_sample = torch.stack(sample_history).mean()
-    hamming_ref = torch.stack(ref_hamming).mean()
     hamming_sample = torch.stack(sample_hamming).mean()
-    print("F-score ref: ", fscore_ref)
-    print("Hamming-score ref: ", hamming_ref, end="\n\n")
-    print("F-score sample: ", fscore_sample)
-    print("Hamming-score sample: ", hamming_sample, end="\n\n")
+    print("Avg elapsed time SAMPLE per batch ", np.mean(sample_exec))
+    print("F1-score SAMPLE: ", fscore_sample)
+    print("Hamming-score SAMPLE: ", hamming_sample, end="\n\n")
 
-    return fscore_ref, fscore_sample
+    return fscore_sample, hamming_sample, np.mean(sample_exec)
 
 def quantize(ds: Type[Dataset]) -> None:
     """
@@ -369,25 +393,17 @@ def quantize(ds: Type[Dataset]) -> None:
     model_shape = ds[0][0].shape
     
     export_to_onnx(model_pt, model_shape)
+    print("num_of_params: ", count_parameters(qConfig.get_onnx_path()))
 
-    #initialize ONNXRuntime configuration
-    ort_provider = ['CPUExecutionProvider']
-    if qConfig.get_gpu() and torch.cuda.is_available():
-        model_pt.to(qConfig.get_device())
-        ort_provider = ['CUDAExecutionProvider']
+    create_quant_model(calib_ds)
+    print("num_of_params: ", count_parameters(qConfig.get_int8_path()))
 
-    #start ONNXRuntime session for non-q ONNX model
-    ort_sess = ort.InferenceSession(qConfig.get_onnx_path(), providers=ort_provider)
-
-    #start ONNXRuntime session for qONNX model
-    ort_input_name =  ort_sess.get_inputs()[0].name
-    create_quant_model(calib_ds, ort_input_name)
-    ort_int8_sess = ort.InferenceSession(qConfig.get_int8_path(), providers=ort_provider)
-
-    print("Evaluating ONNX vs TorchScript")
-    qEvaluate(ort_sess, model_pt, dl, isTorchSample=True)
-    print("Evaluating ONNX vs qONNX")
-    qEvaluate(ort_sess, ort_int8_sess, dl)
+    print("Evaluating TorchScript")
+    qEvaluate(model_pt, dl, isTorchSample=True)
+    print("Evaluating ONNX")
+    qEvaluate(qConfig.get_onnx_path(), dl)
+    print("Evaluating qONNX")
+    qEvaluate(qConfig.get_int8_path(), dl)
 
 
 
