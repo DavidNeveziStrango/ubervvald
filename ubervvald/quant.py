@@ -393,10 +393,10 @@ def quantize(ds: Type[Dataset]) -> None:
     model_shape = ds[0][0].shape
     
     export_to_onnx(model_pt, model_shape)
-    print("num_of_params: ", count_parameters(qConfig.get_onnx_path()))
+    print("ONNX num_of_params: ", "{:,}".format(count_parameters(qConfig.get_onnx_path())))
 
     create_quant_model(calib_ds)
-    print("num_of_params: ", count_parameters(qConfig.get_int8_path()))
+    print("qONNX num_of_params: ", "{:,}".format(count_parameters(qConfig.get_int8_path())))
 
     print("Evaluating TorchScript")
     qEvaluate(model_pt, dl, isTorchSample=True)
