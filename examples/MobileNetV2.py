@@ -194,8 +194,8 @@ class MobileNetV2(nn.Module):
     #     # recursively find fuse-able ops
     #     fuse_modules([op for m in self.model.modules() for _, op in m.named_children()][0], layer_list, inplace=True)
     #     #     operator^^    ^^outer sequential          name|module      ^^inner sequential           
-    def set_qconfig(self, qconfig):
-        self.model.qconfig = qconfig
+    # def set_qconfig(self, qconfig):
+    #     self.model.qconfig = qconfig
         
     def summary(self):
         return summary(self.model)
