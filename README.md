@@ -1,7 +1,7 @@
 <div align="center">
 <img src=".assets/ubervvald-04.png" width="350"/>
 </div>
-<sub><sup><i>Logo partially generated with AI; Credit: Emanuela-Alexandra Cârcu</i></sup></sub>
+<sub><sup><i>Logo partially generated with AI; Credit: [Emanuela-Alexandra Cârcu][linkedin.com/in/emanuela-alexandra-cârcu-79762a20b]</i></sup></sub>
 
 ---
 # Ubervvald
