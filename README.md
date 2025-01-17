@@ -1,3 +1,9 @@
+<div align="center">
+<img src=".assets/ubervvald-04.png" width="350"/>
+</div>
+<sub><sup><i>Logo partially generated with AI; Credit: Emanuela-Alexandra Cârcu</i></sup></sub>
+
+---
 # Ubervvald
 
 Ubervvald (Unified toolBench for Edge-targeted impRovements & enVironment-friendly innoVative aLgorithms for DNNs) is a Python library for executing a DNAS and/or Quantization pipeline on PyTorch models. The library is meant to be flexible and "plug-and-play", allowing to either integratie into a larger execution process via only 2-5 function calls or to customize your own pipeline.
