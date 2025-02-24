@@ -50,6 +50,16 @@ Additionally, the following sources were used to make the pip package complete:
    
 ## Citation
 If you plan to do academic research using the library please cite the repository as shown by Github.
+There is also a paper related to the library. It is preffered that you should use the paper's citation:
+```BibTeX
+@unpublished{nevezi2025ubervvald,
+  author    = {David Nevezi-Strango and Mihail Gaianu},
+  title     = {Library of complex CNN optimizations},
+  note      = {Accepted for publication in a Springer Nature Computer Science book series},
+  year      = {2025},
+  month     = {February},
+}
+```
 
 ## License
 Ubervvald is mostly licensed under [Apache License 2.0](LICENSE) but there are some portions of code which were required to be sublicensed with the same one [see example](ubervvald/_utils.py#L145).
