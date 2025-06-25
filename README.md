@@ -52,12 +52,13 @@ Additionally, the following sources were used to make the pip package complete:
 If you plan to do academic research using the library please cite the repository as shown by Github.
 There is also a paper related to the library. It is preffered that you should use the paper's citation:
 ```BibTeX
-@unpublished{nevezi2025ubervvald,
-  author    = {David Nevezi-Strango and Mihail Gaianu},
-  title     = {Library of complex CNN optimizations},
-  note      = {Accepted for publication in a Springer Nature Computer Science book series},
-  year      = {2025},
-  month     = {February},
+@inproceedings{nevezi2025ubervvald,
+  title={Ubervvald: Advanced Object Detection Library for Optimizing Complex Convolutional Neural Networks (CNNs)},
+  author={Nevezi-Strango, D{\'a}vid and G{\u{a}}ianu, Mihail},
+  booktitle={Asian Conference on Intelligent Information and Database Systems},
+  pages={184--198},
+  year={2025},
+  organization={Springer}
 }
 ```
 
